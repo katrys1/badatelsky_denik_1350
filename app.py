@@ -178,7 +178,7 @@ elif st.session_state.step == 2:
     # 2. FÁZE: Hledání prvků
     elif st.session_state.substep == 1:
         st.subheader("🔍 Hledání důkazů")
-        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True)
+        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True) # Odstranit sipku navíc
         targets = {"1": "Žebrová klenba", "2": "Svorník", "3": "Lomený oblouk", "4": "Vitráž"}
         
         cols = st.columns(4)
