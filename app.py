@@ -178,7 +178,7 @@ elif st.session_state.step == 2:
     # 2. FÁZE: Hledání prvků
     elif st.session_state.substep == 1:
         st.subheader("🔍 Hledání důkazů")
-        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True) # Odstranit sipku navíc
+        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True)
         targets = {"1": "Žebrová klenba", "2": "Svorník", "3": "Lomený oblouk", "4": "Vitráž"}
         
         cols = st.columns(4)
@@ -269,25 +269,40 @@ elif st.session_state.step == 2:
 # --- ÚROVEŇ 3: STUDIUM DÍLA ---
 elif st.session_state.step == 3:
     if st.session_state.substep == 0:
-        if os.path.exists("c.jpg"): st.image("c.jpg", use_container_width=True)
-        if st.button("Prozkoumat oltářní desku"):
-            st.session_state.substep = 1
-            st.rerun()
+        col_main, col_side = st.columns([3, 1])
+        with col_main:
+            if os.path.exists("c.jpg"): st.image("c.jpg", use_container_width=True)
+            if st.button("Prozkoumat oltářní desku"):
+                st.session_state.substep = 1
+                st.rerun()
+        with col_side:
+            if os.path.exists("predikonograficky_popis.png"):
+                st.image("predikonograficky_popis.png", use_container_width=True)
     elif st.session_state.substep == 1:
-        if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", use_container_width=True)
-        if st.button("Studovat detaily"):
-            st.session_state.substep = 2
-            st.rerun()
+        col_main, col_side = st.columns([3, 1])
+        with col_main:
+            if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", use_container_width=True)
+            if st.button("Studovat detaily"):
+                st.session_state.substep = 2
+                st.rerun()
+        with col_side:
+            if os.path.exists("ikonograficky_popis.png"):
+                st.image("ikonograficky_popis.png", use_container_width=True)
     else:
-        st.subheader("ÚROVEŇ 3: STUDIUM DÍLA")
-        vjem = st.text_input("Zapiš detail, který tě zaujal:", key="ans3")
-        if vjem and st.button("Uložit do deníku (+20 XP)"):
-            st.session_state.denik.append(vjem)
-            st.session_state.xp += 20
-            st.session_state.lupa_unlocked = True
-            st.session_state.step = 4
-            st.session_state.substep = 0
-            st.rerun()
+        col_main, col_side = st.columns([3, 1])
+        with col_main:
+            st.subheader("ÚROVEŇ 3: STUDIUM DÍLA")
+            vjem = st.text_input("Zapiš detail, který tě zaujal:", key="ans3")
+            if vjem and st.button("Uložit do deníku (+20 XP)"):
+                st.session_state.denik.append(vjem)
+                st.session_state.xp += 20
+                st.session_state.lupa_unlocked = True
+                st.session_state.step = 4
+                st.session_state.substep = 0
+                st.rerun()
+        with col_side:
+            if os.path.exists("ikonograficka_interpretace.png"):
+                st.image("ikonograficka_interpretace.png", use_container_width=True)
 
 # --- ÚROVEŇ 4: PÍSMO ---
 elif st.session_state.step == 4:
