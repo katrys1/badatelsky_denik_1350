@@ -18,18 +18,16 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Specifické nastavení pro Sidebar, aby nezmizel text a ikony */
+    /* Specifické nastavení pro Sidebar */
     [data-testid="stSidebar"] {
         background-color: #ffffff !important;
         border-right: 2px solid #000000 !important;
     }
     
-    [data-testid="stSidebar"] * {
+    [data-testid="stSidebar"] *:not(i):not(span[class*="Icon"]):not([class*="material"]) {
         color: #000000 !important;
         font-family: 'Texturina', serif !important;
     }
-
-    /* Oprava ikon v postranním panelu (zamezí zobrazení textu keyboard_double místo ikony) */
     i.material-icons,
     i.material-icons-outlined,
     i.material-icons-round,
@@ -135,6 +133,17 @@ def claim_xp(amount, key):
     if key not in st.session_state.claimed_xp:
         st.session_state.xp += amount
         st.session_state.claimed_xp.add(key)
+        
+        # Ikony pro toast oznámení
+        icons = {
+            "l2_exam": "📐", "l2_cardinal": "🧭", "l3_study": "📖", 
+            "l3_lupa": "🔍", "l4_script": "📜", "l5_workshop": "🎨", 
+            "l5_olovnice": "📐", "l6_realization": "🖌️"
+        }
+        icon = icons.get(key, "✨")
+        if key.startswith("l2_item"): icon = "🧱"
+        
+        st.toast(f"Výborně! Získal jsi {amount} XP {icon}")
         return True
     return False
 
@@ -411,7 +420,7 @@ elif st.session_state.step == 2:
     if st.session_state.substep == 0:
         st.subheader("🏛️ ÚROVEŇ 2: SAKRÁLNÍ PROSTOR A ARCHITEKTURA")
         st.write(f"Vítej, {st.session_state.jmeno}. Ztiš se a vnímej prostor.")
-        st.info("Mistr stavitel: „Zvedni hlavu. Co drží tuto stavbu nad tebou?“")
+        st.info("Mistr stavitel: „Zvedni hlavu. Co drží tuto stavbu nad tebou? Prohlédni si prostor a najdi klíčové prvky.“")
         
         if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", width="stretch")
         targets = {"1": "Svorník", "2": "Žebrová klenba", "3": "Lomený oblouk", "4": "Vitráž"}
@@ -421,15 +430,13 @@ elif st.session_state.step == 2:
             if num in st.session_state.l2_found:
                 cols[i].success(f"✅ {name}")
             else:
-                if cols[i].button(f"Najít {num}"):
+                if cols[i].button(f"{name}", key=f"find_{num}"):
                     st.session_state.l2_found.append(num)
                     claim_xp(20, f"l2_item_{num}")
                     st.rerun()
         
         if len(st.session_state.l2_found) >= 4:
-            st.success("Našel jsi všechny stavební prvky! Za své úsilí získáváš 🔥 Křesadlo.")
             st.session_state.kresadlo_unlocked = True
-            add_diary_entry("Do poutníkovy brašny se přidaly první předměty, které jsem na své pouti využíval.")
             
             st.divider()
             st.write("Mistr stavitel: „Pohleď na tuto stavbu ještě jednou Jak bys popsal podstatu této stavby?“")
@@ -702,7 +709,7 @@ elif st.session_state.step == 5:
                     if st.button("Smazat"): st.session_state.paska = []; st.rerun()
                     if st.session_state.paska == spravne and st.button("Odevzdat hotové dílo (+90 XP)"):
                         claim_xp(90, "l5_workshop")
-                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
+                        add_diary_entry("V mistrově dílně jsem se věnoval praktické tvorbě a prohloubil své znalosti ikonografie.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
@@ -725,7 +732,7 @@ elif st.session_state.step == 5:
                             
                     if st.button("Zahrada je vysázena (+90 XP)"):
                         claim_xp(90, "l5_workshop")
-                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
+                        add_diary_entry("V mistrově dílně jsem se věnoval praktické tvorbě a prohloubil své znalosti ikonografie.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
@@ -734,7 +741,7 @@ elif st.session_state.step == 5:
                     odev = st.text_area("Proč je andělův oděv tak zdobný?")
                     if odev and st.button("Odeslat mistrovi (+90 XP)"):
                         claim_xp(90, "l5_workshop")
-                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
+                        add_diary_entry("V mistrově dílně jsem se věnoval praktické tvorbě a prohloubil své znalosti ikonografie.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
@@ -764,7 +771,7 @@ elif st.session_state.step == 6:
                  else:
                      st.session_state.masterpiece = False
                  claim_xp(80, "l6_realization")
-                 add_diary_entry("Namaloval jsem malbu inspirovanou tímto vzácným obrazem.")
+                 add_diary_entry("Podle předlohy jsem namaloval vlastní tvorbu.")
                  st.session_state.step = 7
                  st.rerun()
 
@@ -777,8 +784,8 @@ elif st.session_state.step == 7:
     st.markdown("### 🖋️ Tvůj badatelský deník")
     rok_nar = st.session_state.get('rok_narozeni', 2010)
     
-    diary_text = f"Badatelský deník mistra **{st.session_state.jmeno}**.\n"
-    diary_text += f"Narozen léta Páně {rok_nar}.\n\n"
+    diary_text = f"Záznam o pouti mistra **{st.session_state.jmeno}**.\n"
+    diary_text += f"Byl narozen léta Páně {rok_nar}.\n\n"
     for entry in st.session_state.diary_entries:
         diary_text += f"- {entry}\n"
 
@@ -790,6 +797,45 @@ elif st.session_state.step == 7:
 
     st.info(diary_text)
     st.success(evaluation)
+
+    # --- QR KÓD PRO DENÍK (VČETNĚ MINIATURY) ---
+    import urllib.parse
+    import io
+
+    qr_data = diary_text
+    
+    # Pokud je nahrán obraz, pokusíme se ho přidat jako miniaturní base64
+    if 'vlastni_kresba' in st.session_state:
+        try:
+            # Zajistíme, že soubor je přečten od začátku
+            st.session_state.vlastni_kresba.seek(0)
+            img = Image.open(st.session_state.vlastni_kresba)
+            # Extrémní zmenšení a převod na stupně šedi pro úsporu místa v QR
+            img.thumbnail((24, 24)) # Ještě menší pro jistotu
+            img = img.convert('L')
+            
+            buf = io.BytesIO()
+            img.save(buf, format='JPEG', quality=20)
+            img_b64 = base64.b64encode(buf.getvalue()).decode()
+            
+            new_qr_data = qr_data + f"\n[IMG:data:image/jpeg;base64,{img_b64}]"
+            
+            # Kontrola délky (API má limit cca 2000-3000 znaků v URL)
+            if len(urllib.parse.quote(new_qr_data)) < 2500:
+                qr_data = new_qr_data
+        except Exception as e:
+            pass
+
+    encoded_data = urllib.parse.quote(qr_data)
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={encoded_data}"
+    
+    st.divider()
+    col_qr1, col_qr2 = st.columns([1, 2])
+    with col_qr1:
+        st.image(qr_url, caption="Tvůj deník + miniatura obrazu")
+    with col_qr2:
+        st.write("### 📱 Vezmi si svůj deník s sebou!")
+        st.write("Naskenuj tento kód svým telefonem a uchovej si své poznámky a objevy z roku 1350 jako památku na svou badatelskou cestu.")
 
     st.write(f"Získal jsi celkem {st.session_state.xp} XP.")
     st.divider()
