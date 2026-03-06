@@ -89,8 +89,10 @@ if 'step' not in st.session_state:
     st.session_state.step = 0
     st.session_state.substep = 0
     st.session_state.xp = 0
+    st.session_state.claimed_xp = set()
+    st.session_state.max_xp = 500
     st.session_state.denik = []
-    st.session_state.max_xp = 450
+    st.session_state.diary_entries = []
     st.session_state.paska = []  
     st.session_state.current_tool = "1"
     
@@ -112,6 +114,8 @@ if 'step' not in st.session_state:
     st.session_state.klic_lost = False
     st.session_state.pigmenty_lost = False
     st.session_state.stetec_lost = False
+    st.session_state.l2_exam_step = 0
+    st.session_state.l2_exam_health = 3
 
     if 'grid' not in st.session_state:
         size = 7
@@ -126,8 +130,72 @@ LIBRARY = {
     "6": {"id": "B", "name": "Bylinky", "char": "🌿"},
 }
 
+
+def claim_xp(amount, key):
+    if key not in st.session_state.claimed_xp:
+        st.session_state.xp += amount
+        st.session_state.claimed_xp.add(key)
+        return True
+    return False
+
+def render_church_blueprint():
+    found = st.session_state.l2_found
+    
+    # Barvy
+    base_color = "#1e293b" # tmavě břidlicová
+    active_color = "#fbbf24" # zlatá
+    glass_colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b"] # modrá, červená, zelená, oranžová
+    
+    # Logika prvků
+    arch_color = active_color if "3" in found else base_color
+    ribs_opacity = "1" if "2" in found else "0.1"
+    keystone_color = active_color if "1" in found else base_color
+    glass_opacity = "0.6" if "4" in found else "0"
+    
+    svg = f'<div style="display: flex; justify-content: center; margin: 1rem 0;">' \
+          f'<svg width="180" height="220" viewBox="0 0 200 250" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">' \
+          f'<!-- Vitráž (4) -->' \
+          f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230 Z" fill="url(#glassGradient)" style="opacity: {glass_opacity}; transition: opacity 1.5s ease-in-out;" />' \
+          f'<!-- Lomený oblouk (3) -->' \
+          f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230" fill="none" stroke="{arch_color}" stroke-width="6" stroke-linecap="round" style="transition: stroke 1s;" />' \
+          f'<!-- Žebrová klenba (2) -->' \
+          f'<g style="opacity: {ribs_opacity}; transition: opacity 1s;">' \
+          f'<path d="M 20 120 Q 100 80 180 120" fill="none" stroke="{active_color}" stroke-width="2" stroke-dasharray="4" />' \
+          f'<path d="M 20 120 L 180 120" fill="none" stroke="{active_color}" stroke-width="1" style="opacity: 0.3;" />' \
+          f'<path d="M 100 50 L 20 120" fill="none" stroke="{active_color}" stroke-width="3" />' \
+          f'<path d="M 100 50 L 180 120" fill="none" stroke="{active_color}" stroke-width="3" />' \
+          f'</g>' \
+          f'<!-- Svorník (1) -->' \
+          f'<circle cx="100" cy="50" r="8" fill="{keystone_color}" stroke="{active_color if "1" in found else "none"}" stroke-width="2" style="transition: all 1s; filter: {"drop-shadow(0 0 5px gold)" if "1" in found else "none"};" />' \
+          f'<defs>' \
+          f'<linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">' \
+          f'<stop offset="0%" style="stop-color:{glass_colors[0]};stop-opacity:1" />' \
+          f'<stop offset="33%" style="stop-color:{glass_colors[1]};stop-opacity:1" />' \
+          f'<stop offset="66%" style="stop-color:{glass_colors[2]};stop-opacity:1" />' \
+          f'<stop offset="100%" style="stop-color:{glass_colors[3]};stop-opacity:1" />' \
+          f'</linearGradient>' \
+          f'</defs>' \
+          f'</svg>' \
+          f'</div>'
+    st.sidebar.markdown(svg, unsafe_allow_html=True)
+
+def add_diary_entry(text):
+    if text not in st.session_state.diary_entries:
+        st.session_state.diary_entries.append(text)
+
 # --- 4. SIDEBAR ---
 with st.sidebar:
+    st.header("📖 Badatelský deník")
+    with st.expander("Zobrazit mé poznámky"):
+        # --- INTERAKTIVNÍ SCHÉMA ---
+        render_church_blueprint()
+        
+        if st.session_state.diary_entries:
+            for entry in st.session_state.diary_entries:
+                st.write(f"- {entry}")
+        else:
+            st.write("*Deník je zatím prázdný.*")
+
     st.header("🎵 Hudba")
     if os.path.exists("intro.mp3"):
         import streamlit.components.v1 as components
@@ -174,6 +242,7 @@ with st.sidebar:
                 st.write(f"🔒 {name} (*zamčeno*)")
         
         st.warning("⚠️ **Pozor, badateli!** O získané předměty můžeš špatným rozhodnutím i přijít.")
+        
         
     st.divider()
     
@@ -299,6 +368,9 @@ with st.sidebar:
                 st.session_state.pigmenty_unlocked = True
                 st.session_state.stetec_unlocked = True
                 st.session_state.xp = st.session_state.max_xp
+                # Fill claimed_xp for god mode
+                st.session_state.claimed_xp.update(["l2_exam", "l2_cardinal", "l3_study", "l3_lupa", "l4_script", "l5_workshop", "l5_olovnice", "l6_realization"])
+                for i in range(1, 5): st.session_state.claimed_xp.add(f"l2_item_{i}")
                 st.rerun()
 
     # --- 5. LOGIKA PRŮCHODU ---
@@ -308,8 +380,9 @@ if st.session_state.step == 0:
     if os.path.exists("poutnik.jpg"): st.image("poutnik.jpg", width="stretch")
     st.header("Badatelský deník: Malířská dílna (1350)")
     st.session_state.jmeno = st.text_input("Zadej své jméno, badateli:")
-    st.number_input("Rok tvého narození (do kroniky):", min_value=1300, max_value=2026, value=2010)
+    rok = st.number_input("Rok tvého narození (do deníku):", min_value=1300, max_value=2026, value=2010)
     if st.session_state.jmeno and st.button("Vstoupit"):
+        st.session_state.rok_narozeni = rok
         st.session_state.step = 2
         st.session_state.substep = 0
         st.rerun()
@@ -333,12 +406,13 @@ elif st.session_state.step == 2:
             else:
                 if cols[i].button(f"Najít {num}"):
                     st.session_state.l2_found.append(num)
-                    st.session_state.xp += 20
+                    claim_xp(20, f"l2_item_{num}")
                     st.rerun()
         
         if len(st.session_state.l2_found) >= 4:
             st.success("Našel jsi všechny stavební prvky! Za své úsilí získáváš 🔥 Křesadlo.")
             st.session_state.kresadlo_unlocked = True
+            add_diary_entry("Do poutníkovy brašny se přidaly první předměty, které jsem na své pouti využíval.")
             
             st.divider()
             st.write("Mistr stavitel: „Pohleď na tuto stavbu ještě jednou Jak bys popsal podstatu této stavby?“")
@@ -354,22 +428,54 @@ elif st.session_state.step == 2:
                 st.session_state.substep = 1
                 st.rerun()
 
-    # 2. FÁZE: Mistrova zkouška
+    # 2. FÁZE: Mistrova zkouška stability
     elif st.session_state.substep == 1:
-        st.subheader("📜 Mistrova zkouška")
-        q1 = st.text_input("Jaký sloh definuje tyto lomené tvary?").lower().strip()
-        q2 = st.text_input("Kamenná žebra se sbíhají v...").lower().strip()
-        q3 = st.text_input("Jak se říká oknu s barevným sklem?").lower().strip()
-
-        if st.button("Odevzdat odpovědi"):
-            if q1 in ["gotika", "gotický"] and q2 in ["svorník", "svorníku"] and q3 in ["vitráž", "vitrážové okno"]:
-                st.success("Mistr: „Výborně! Získáváš 📐 Olovnici, nástroj přesnosti.“")
-                st.session_state.olovnice_unlocked = True
-                st.session_state.xp += 50
-                st.session_state.substep = 2
-                st.rerun()
-            else:
-                st.error("Mistr: „Tvé znalosti jsou vratké. Přemýšlej znovu.“")
+        st.subheader("📜 Mistrova zkouška stability")
+        
+        # Ukazatel stability (Health)
+        health_icons = "❤️" * st.session_state.l2_exam_health + "🖤" * (3 - st.session_state.l2_exam_health)
+        st.write(f"**Stabilita tvých vědomostí:** {health_icons}")
+        
+        # Definice otázek a správných odpovědí
+        questions = [
+            ("Jaký sloh definuje tyto lomené tvary?", ["gotika", "gotický"]),
+            ("Kamenná žebra se sbíhají v...", ["svorník", "svorníku"]),
+            ("Jak se říká oknu s barevným sklem?", ["vitráž", "vitrážové okno"])
+        ]
+        
+        curr_q = st.session_state.l2_exam_step
+        if curr_q < 3:
+            q_text, answers = questions[curr_q]
+            # Použijeme jedinečný klíč pro text_input, aby se při každé otázce choval správně
+            user_ans = st.text_input(f"Otázka č. {curr_q + 1}: {q_text}", key=f"q_input_{curr_q}").lower().strip()
+            
+            if st.button("Potvrdit odpověď"):
+                if user_ans in answers:
+                    st.success("Mistr: „Správně. Stavba stojí pevně.“")
+                    st.session_state.l2_exam_step += 1
+                    if st.session_state.l2_exam_step == 3:
+                        st.success("Mistr: „Prošel jsi zkouškou bez zhroucení klenby. Získáváš 📐 Olovnici, nástroj přesnosti.“")
+                        st.session_state.olovnice_unlocked = True
+                        claim_xp(50, "l2_exam")
+                        st.session_state.substep = 2
+                    st.rerun()
+                else:
+                    st.session_state.l2_exam_health -= 1
+                    if st.session_state.l2_exam_health <= 0:
+                        st.error("!!! KLENBA PRASKLA !!!")
+                        st.error("Mistr: „Tvá neznalost ohrožuje samotnou stavbu! Jdi zpět a dívej se pozorněji.“")
+                        # Reset celého postupu úrovně 2
+                        st.session_state.substep = 0
+                        st.session_state.l2_found = []
+                        st.session_state.l2_exam_health = 3
+                        st.session_state.l2_exam_step = 0
+                    else:
+                        st.warning(f"Mistr: „Pozor! V klenbě se objevila prasklina. Tvá stabilita klesá.“")
+                    st.rerun()
+        else:
+            # Pojistka pro případ, že by se hráč vrátil
+            st.session_state.substep = 2
+            st.rerun()
 
     # 3. FÁZE: PŮDORYS
     elif st.session_state.substep == 2:
@@ -443,7 +549,8 @@ elif st.session_state.step == 2:
         if st.session_state.get('smer_urcen', False):
             st.success("Správně. Východ je směr světla.")
             if st.button("Pokročit k oltáři (+40 XP)"):
-                st.session_state.xp += 40
+                claim_xp(40, "l2_cardinal")
+                add_diary_entry("Prozkoumal jsem architekturu chrámu a poodhalil tajemství jeho stavby.")
                 st.session_state.step = 3
                 st.session_state.substep = 0
                 st.session_state.smer_urcen = False
@@ -452,6 +559,7 @@ elif st.session_state.step == 2:
 
 # --- ÚROVEŇ 3: STUDIUM DÍLA ---
 elif st.session_state.step == 3:
+    add_diary_entry("Přistoupil jsem k oltářní desce se Zvěstováním a začal s jejím studiem.")
     if st.session_state.substep == 0:
         col_main, col_side = st.columns([3, 1])
         with col_main:
@@ -472,7 +580,7 @@ elif st.session_state.step == 3:
             if st.session_state.get("lupa_unlocked", False):
                 if st.button("🔍 Použít křišťálovou lupu (+10 XP)"):
                     st.success("Lupa odhalila jemné detaily!")
-                    st.session_state.xp += 10
+                    claim_xp(10, "l3_lupa")
                     st.session_state.substep = 2
                     st.rerun()
 
@@ -481,9 +589,10 @@ elif st.session_state.step == 3:
         with col_main:
             st.subheader("ÚROVEŇ 3: STUDIUM DÍLA")
             vjem = st.text_input("Zapiš detail, který tě zaujal:", key="ans3")
-            if vjem and st.button("Uložit do deníku (+40 XP)"):
+            if vjem and st.button("Uložit do deníku (+50 XP)"):
                 st.session_state.denik.append(vjem)
-                st.session_state.xp += 40
+                claim_xp(50, "l3_study")
+                add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
                 st.session_state.lupa_unlocked = True
                 st.session_state.step = 4
                 st.session_state.substep = 0
@@ -513,8 +622,8 @@ elif st.session_state.step == 4:
         if kod == "L 1, 26":
             st.success("Získal jsi 🗝️ Zlatý klíč.")
             st.session_state.klic_unlocked = True
-            if st.button("Vstoupit do chodby (+80 XP)"):
-                st.session_state.xp += 80
+            if st.button("Vstoupit do chodby (+90 XP)"):
+                claim_xp(90, "l4_script")
                 st.session_state.step = 4.5
                 st.session_state.substep = 0
                 st.rerun()
@@ -574,8 +683,9 @@ elif st.session_state.step == 5:
                         if cols[i].button(s, key=f"p_{i}"): st.session_state.paska.append(s); st.rerun()
                     st.info(f"Nápis: {' '.join(st.session_state.paska)}")
                     if st.button("Smazat"): st.session_state.paska = []; st.rerun()
-                    if st.session_state.paska == spravne and st.button("Odevzdat hotové dílo (+80 XP)"):
-                        st.session_state.xp += 80
+                    if st.session_state.paska == spravne and st.button("Odevzdat hotové dílo (+90 XP)"):
+                        claim_xp(90, "l5_workshop")
+                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
@@ -594,18 +704,20 @@ elif st.session_state.step == 5:
                     if st.session_state.get("olovnice_unlocked", False):
                         if st.button("📐 Použít olovnici pro vyrovnání tvojí zahrady (+10 XP)"):
                             st.success("Zahrada je nyní dokonale zarovnaná!")
-                            st.session_state.xp += 10
+                            claim_xp(10, "l5_olovnice")
                             
-                    if st.button("Zahrada je vysázena (+80 XP)"):
-                        st.session_state.xp += 80
+                    if st.button("Zahrada je vysázena (+90 XP)"):
+                        claim_xp(90, "l5_workshop")
+                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
     
                 elif st.session_state.skupina == "C":
                     odev = st.text_area("Proč je andělův oděv tak zdobný?")
-                    if odev and st.button("Odeslat mistrovi (+80 XP)"):
-                        st.session_state.xp += 80
+                    if odev and st.button("Odeslat mistrovi (+90 XP)"):
+                        claim_xp(90, "l5_workshop")
+                        add_diary_entry("Postupně jsem prošel předikonografickým popisem, ikonografickým popisem a interpretací obrazu.")
                         st.session_state.step = 6
                         st.session_state.substep = 0
                         st.rerun()
@@ -634,7 +746,8 @@ elif st.session_state.step == 6:
                      st.session_state.masterpiece = True
                  else:
                      st.session_state.masterpiece = False
-                 st.session_state.xp += 80
+                 claim_xp(80, "l6_realization")
+                 add_diary_entry("Namaloval jsem malbu inspirovanou tímto vzácným obrazem.")
                  st.session_state.step = 7
                  st.rerun()
 
@@ -642,10 +755,25 @@ elif st.session_state.step == 6:
 elif st.session_state.step == 7:
     if os.path.exists("h.jpg"): st.image("h.jpg", width="stretch")
     st.header("Gratulujeme, mistře badateli!")
+    
+    # --- FINÁLNÍ DENÍK ---
+    st.markdown("### 🖋️ Tvůj badatelský deník")
+    rok_nar = st.session_state.get('rok_narozeni', 2010)
+    
+    diary_text = f"Badatelský deník mistra **{st.session_state.jmeno}**.\n"
+    diary_text += f"Narozen léta Páně {rok_nar}.\n\n"
+    for entry in st.session_state.diary_entries:
+        diary_text += f"- {entry}\n"
+
+    st.divider()
     if st.session_state.get("masterpiece", False):
-        st.subheader("Vytvořil jsi skutečné MISTROVSKÉ DÍLO!")
+        evaluation = "✨ **Zhodnocení cesty:** Tvá pouť byla vedena trpělivostí a moudrostí. Jako skutečný mistr jsi shromáždil všechnu výbavu a tvé dílo bylo toho důkazem. Zanechal jsi po sobě stopu, která v dějinách umění nevybledne."
     else:
-        st.subheader("Tvá cesta končí prostou skicou. Příště zkus najít všechny pomůcky.")
+        evaluation = "📉 **Zhodnocení cesty:** Tvá pouť byla plná objevů, ale v klíčové chvíli ti chyběly nástroje mistra. Tvé dílo zůstalo skicou, ale zkušenosti, které jsi nabral, byly neocenitelné. Příště hledej s větší pečlivostí."
+
+    st.info(diary_text)
+    st.success(evaluation)
+
     st.write(f"Získal jsi celkem {st.session_state.xp} XP.")
     st.divider()
     col_a, col_b = st.columns(2)
@@ -653,7 +781,7 @@ elif st.session_state.step == 7:
         st.caption("Předloha")
         if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", width="stretch")
     with col_b:
-        st.caption("Tvé dílo")
+        if 'vlastni_kresba' in st.session_state: st.image(st.session_state.vlastni_kresba, width="stretch")
 
 # --- GLOBÁLNÍ NAVIGACE HRÁČE ---
 if st.session_state.step > 0:
