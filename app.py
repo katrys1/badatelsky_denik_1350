@@ -373,6 +373,23 @@ with st.sidebar:
                 for i in range(1, 5): st.session_state.claimed_xp.add(f"l2_item_{i}")
                 st.rerun()
 
+            st.divider()
+            # --- PŘESUNUTÁ NAVIGACE ---
+            levels = [0, 2, 3, 4, 4.5, 5, 6, 7]
+            current_index = levels.index(st.session_state.step) if st.session_state.step in levels else 0
+            
+            c_prev, c_next = st.columns(2)
+            if current_index > 0:
+                if c_prev.button("⬅️ Předchozí", key="god_prev"):
+                    st.session_state.step = levels[current_index - 1]
+                    st.session_state.substep = 0
+                    st.rerun()
+            if current_index < len(levels) - 1:
+                if c_next.button("Další ➡️", key="god_next"):
+                    st.session_state.step = levels[current_index + 1]
+                    st.session_state.substep = 0
+                    st.rerun()
+
     # --- 5. LOGIKA PRŮCHODU ---
 
 # --- ÚROVEŇ 0: ÚVOD ---
@@ -783,28 +800,3 @@ elif st.session_state.step == 7:
     with col_b:
         if 'vlastni_kresba' in st.session_state: st.image(st.session_state.vlastni_kresba, width="stretch")
 
-# --- GLOBÁLNÍ NAVIGACE HRÁČE ---
-if st.session_state.step > 0:
-    st.divider()
-    
-    # Seznam všech úrovní v aplikaci v postupném pořadí
-    levels = [0, 2, 3, 4, 4.5, 5, 6, 7]
-    
-    # Zjištění, na jaké pozici v seznamu se aktuální hráč nachází
-    current_index = levels.index(st.session_state.step) if st.session_state.step in levels else 0
-
-    col_nav_prev, col_nav_space, col_nav_next = st.columns([1, 2, 1])
-    
-    with col_nav_prev:
-        if current_index > 0:
-            if st.button("⬅️ Předchozí úroveň"):
-                st.session_state.step = levels[current_index - 1]
-                st.session_state.substep = 0
-                st.rerun()
-                
-    with col_nav_next:
-        if current_index < len(levels) - 1:
-            if st.button("Další úroveň ➡️"):
-                st.session_state.step = levels[current_index + 1]
-                st.session_state.substep = 0
-                st.rerun()
