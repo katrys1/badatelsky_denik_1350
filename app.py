@@ -1,10 +1,11 @@
 import streamlit as st
 import time
 import os
+import base64
 from PIL import Image
 
 # --- 1. KONFIGURACE STRÁNKY ---
-st.set_page_config(page_title="Badatelský deník 1350", page_icon="🌿", layout="centered")
+st.set_page_config(page_title="Badatelský deník 1350", page_icon="🌿", layout="wide")
 
 # --- 2. STYLIZACE (OPRAVENÁ PRO SIDEBAR) ---
 st.markdown("""
@@ -105,7 +106,29 @@ LIBRARY = {
 with st.sidebar:
     st.header("🎵 Hudba")
     if os.path.exists("intro.mp3"):
-        st.audio("intro.mp3", format="audio/mp3", autoplay=True, loop=True)
+        import streamlit.components.v1 as components
+        with open("intro.mp3", "rb") as f:
+            data = f.read()
+            b64 = base64.b64encode(data).decode()
+            st.markdown(f'<audio id="bg-music" src="data:audio/mp3;base64,{b64}" autoplay loop controls></audio>', unsafe_allow_html=True)
+            
+        components.html(
+            """
+            <script>
+                const audio = window.parent.document.getElementById('bg-music');
+                if (audio) {
+                    audio.volume = 0.5;
+                    const playOnInteraction = () => {
+                        audio.play().catch(e => console.log(e));
+                        window.parent.document.removeEventListener('click', playOnInteraction);
+                    };
+                    window.parent.document.addEventListener('click', playOnInteraction);
+                }
+            </script>
+            """,
+            height=0,
+            width=0
+        )
     
     if st.session_state.step > 0:
         st.divider()
@@ -121,12 +144,107 @@ with st.sidebar:
         for name, key in items:
             st.write(f"✅ {name}" if st.session_state.get(key, False) else f"🔒 *zamčeno*")
         
-        st.divider()
-        procenta = min((st.session_state.xp / st.session_state.max_xp), 1.0)
-        st.write(f"**Prestiž:** {st.session_state.xp} XP")
-        st.progress(procenta)
-        if 'jmeno' in st.session_state:
-            st.caption(f"Poutník: {st.session_state.jmeno}")
+    st.divider()
+    
+    # --- VÝPOČET ROZETY DLE PŘEDMĚTŮ V BRAŠNĚ ---
+    completed_segments = 0
+    if st.session_state.get("kresadlo_unlocked", False): completed_segments += 1
+    if st.session_state.get("olovnice_unlocked", False): completed_segments += 1
+    if st.session_state.get("lupa_unlocked", False): completed_segments += 1
+    if st.session_state.get("klic_unlocked", False): completed_segments += 1
+    if st.session_state.get("pigmenty_unlocked", False): completed_segments += 1
+    if st.session_state.get("stetec_unlocked", False): completed_segments += 2
+    if st.session_state.get("step", 0) >= 7: completed_segments += 1  # Úspěšné dokončení
+    
+    total_segments = 8
+    completed_segments = min(completed_segments, total_segments)
+    procenta = completed_segments / total_segments
+    percentage = procenta * 100
+    is_maxed = completed_segments == total_segments
+    
+    # --- SVG ROZETA (z rozeta.py) ---
+    import math
+    colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7']
+    
+    svg_paths = ""
+    for i in range(total_segments):
+        angle = 360 / total_segments
+        start_angle = i * angle
+        end_angle = (i + 1) * angle
+        
+        def polar_to_cartesian(cx, cy, r, angle_deg):
+            angle_rad = (angle_deg - 90) * math.pi / 180.0
+            return cx + r * math.cos(angle_rad), cy + r * math.sin(angle_rad)
+            
+        start_x, start_y = polar_to_cartesian(100, 100, 80, end_angle)
+        end_x, end_y = polar_to_cartesian(100, 100, 80, start_angle)
+        large_arc_flag = "0" if end_angle - start_angle <= 180 else "1"
+        
+        path_d = f"M 100 100 L {start_x} {start_y} A 80 80 0 {large_arc_flag} 0 {end_x} {end_y} Z"
+        fill_color = colors[i] if i < completed_segments else '#1e293b'
+        opacity = "0.9" if i < completed_segments else "0.3"
+        
+        svg_paths += f'<path d="{path_d}" fill="{fill_color}" stroke="#0f172a" stroke-width="2" style="opacity: {opacity}; transition: all 0.7s ease-in-out;" />'
+
+    glow_filter = """
+<defs>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+    <feMerge>
+      <feMergeNode in="coloredBlur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</defs>
+""" if is_maxed else ""
+    
+    filter_attr = 'filter="url(#glow)"' if is_maxed else ""
+    center_color = "#fff" if is_maxed else "#334155"
+    
+    if is_maxed:
+        status_text = "Rozeta je plná barev společně s tvojí malbou"
+        status_color = "#facc15" # text-yellow-400
+        status_class = "animate-pulse"
+        scale = "scale(1.1)"
+    else:
+        status_text = f"Pokrok: {round(percentage)}%"
+        status_color = "#94a3b8" # text-slate-400
+        status_class = ""
+        scale = "scale(1.0)"
+
+    svg_html = f"""
+<style>
+@keyframes pulse {{
+  0%, 100% {{ opacity: 1; }}
+  50% {{ opacity: .5; }}
+}}
+.animate-pulse {{
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}}
+</style>
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 1rem; margin-bottom: 1rem; transition: all 1s; transform: {scale};">
+<svg width="200" height="200" viewBox="0 0 200 200" style="filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));">
+{glow_filter}
+<g {filter_attr}>
+{svg_paths}
+<circle cx="100" cy="100" r="15" fill="{center_color}" style="transition: fill 1s;" />
+</g>
+</svg>
+<!-- Textové info ve stylu rozeta.py -->
+<div style="margin-top: 1.5rem; text-align: center;">
+<h2 class="{status_class}" style="font-size: 1.25rem; font-family: serif; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; color: {status_color}; margin: 0;">
+{status_text}
+</h2>
+<p style="color: #64748b; margin-top: 0.5rem; font-family: monospace; font-size: 1rem; margin-bottom: 0;">
+{st.session_state.xp} / {st.session_state.max_xp} XP
+</p>
+</div>
+</div>
+"""
+    st.markdown(svg_html, unsafe_allow_html=True)
+    # --- KONEC SVG ROZETY ---
+    if 'jmeno' in st.session_state:
+        st.caption(f"Poutník: {st.session_state.jmeno}")
 
 # --- 5. LOGIKA PRŮCHODU ---
 
@@ -177,7 +295,7 @@ elif st.session_state.step == 2:
             
     # 2. FÁZE: Hledání prvků
     elif st.session_state.substep == 1:
-        st.subheader("🔍 Hledání důkazů")
+        st.subheader("🔍 Hledání důkazů (společně s lektorem)")
         if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True)
         targets = {"1": "Žebrová klenba", "2": "Svorník", "3": "Lomený oblouk", "4": "Vitráž"}
         
@@ -285,9 +403,7 @@ elif st.session_state.step == 3:
             if st.button("Studovat detaily"):
                 st.session_state.substep = 2
                 st.rerun()
-        with col_side:
-            if os.path.exists("ikonograficky_popis.png"):
-                st.image("ikonograficky_popis.png", use_container_width=True)
+
     else:
         col_main, col_side = st.columns([3, 1])
         with col_main:
@@ -300,17 +416,20 @@ elif st.session_state.step == 3:
                 st.session_state.step = 4
                 st.session_state.substep = 0
                 st.rerun()
-        with col_side:
-            if os.path.exists("ikonograficka_interpretace.png"):
-                st.image("ikonograficka_interpretace.png", use_container_width=True)
+
 
 # --- ÚROVEŇ 4: PÍSMO ---
 elif st.session_state.step == 4:
     if st.session_state.substep == 0:
-        if os.path.exists("d.jpg"): st.image("d.jpg", use_container_width=True)
-        if st.button("Prozkoumat listiny"):
-            st.session_state.substep = 1
-            st.rerun()
+        col_main, col_side = st.columns([3, 1])
+        with col_main:
+            if os.path.exists("d.jpg"): st.image("d.jpg", use_container_width=True)
+            if st.button("Prozkoumat listiny"):
+                st.session_state.substep = 1
+                st.rerun()
+        with col_side:
+            if os.path.exists("ikonograficky_popis.png"):
+                st.image("ikonograficky_popis.png", use_container_width=True)
     elif st.session_state.substep == 1:
         if os.path.exists("image.png"): st.image("image.png", use_container_width=True)
         if st.button("Rozluštit kód textu"):
@@ -354,10 +473,15 @@ elif st.session_state.step == 4.5:
 # --- ÚROVEŇ 5: DÍLNY ---
 elif st.session_state.step == 5:
     if st.session_state.substep == 0:
-        if os.path.exists("e.jpg"): st.image("e.jpg", use_container_width=True)
-        if st.button("Vybrat si mistrovskou specializaci"):
-            st.session_state.substep = 1
-            st.rerun()
+        col_main, col_side = st.columns([3, 1])
+        with col_main:
+            if os.path.exists("e.jpg"): st.image("e.jpg", use_container_width=True)
+            if st.button("Vybrat si mistrovskou specializaci"):
+                st.session_state.substep = 1
+                st.rerun()
+        with col_side:
+            if os.path.exists("ikonograficka_interpretace.png"):
+                st.image("ikonograficka_interpretace.png", use_container_width=True)
     else:
         st.subheader("ÚROVEŇ 5: DÍLENSKÁ SPECIALIZACE - Práce s badatelskými listy")
         if 'skupina' not in st.session_state:
@@ -367,44 +491,54 @@ elif st.session_state.step == 5:
             if cC.button("C: Figuralisté"): st.session_state.skupina = "C"; st.rerun()
         else:
             st.session_state.pigmenty_unlocked = True
-            if st.session_state.skupina == "A":
-                st.write("Napiš správně text a odpověz na badatelskou otázku z listu")
-                spravne = ["Ave", "gratia", "plena", "Dominus", "tecum"]
-                slova = ["plena", "Ave", "tecum", "gratia", "Dominus"]
-                cols = st.columns(5)
-                for i, s in enumerate(slova):
-                    if cols[i].button(s, key=f"p_{i}"): st.session_state.paska.append(s); st.rerun()
-                st.info(f"Nápis: {' '.join(st.session_state.paska)}")
-                if st.button("Smazat"): st.session_state.paska = []; st.rerun()
-                if st.session_state.paska == spravne and st.button("Odevzdat hotové dílo (+50 XP)"):
-                    st.session_state.xp += 50
-                    st.session_state.step = 6
-                    st.session_state.substep = 0
-                    st.rerun()
-
-            elif st.session_state.skupina == "B":
-                tcols = st.columns(6)
-                for i, (k, v) in enumerate(LIBRARY.items()):
-                    if tcols[i].button(v['char'], key=f"t_{k}"): st.session_state.current_tool = k
-                for r in range(7):
-                    gcols = st.columns(7)
-                    for c in range(7):
-                        if gcols[c].button(st.session_state.grid[r][c], key=f"g_{r}_{c}"):
-                            st.session_state.grid[r][c] = LIBRARY[st.session_state.current_tool]["char"]
-                            st.rerun()
-                if st.button("Zahrada je vysázena (+50 XP)"):
-                    st.session_state.xp += 50
-                    st.session_state.step = 6
-                    st.session_state.substep = 0
-                    st.rerun()
-
-            elif st.session_state.skupina == "C":
-                odev = st.text_area("Proč je andělův oděv tak zdobný?")
-                if odev and st.button("Odeslat mistrovi (+50 XP)"):
-                    st.session_state.xp += 50
-                    st.session_state.step = 6
-                    st.session_state.substep = 0
-                    st.rerun()
+            # Úprava poměru sloupců, aby byl pravý sloupec mnohem širší a obrázky byly přímo čitelné
+            col_main, col_side = st.columns([1, 1.5])
+            with col_side:
+                if st.session_state.skupina == "A" and os.path.exists("A.png"):
+                    st.image("A.png", use_container_width=True)
+                elif st.session_state.skupina == "B" and os.path.exists("B.png"):
+                    st.image("B.png", use_container_width=True)
+                elif st.session_state.skupina == "C" and os.path.exists("C.png"):
+                    st.image("C.png", use_container_width=True)
+            with col_main:
+                if st.session_state.skupina == "A":
+                    st.write("Napiš správně text a odpověz na badatelskou otázku z listu")
+                    spravne = ["Ave", "gratia", "plena", "Dominus", "tecum"]
+                    slova = ["plena", "Ave", "tecum", "gratia", "Dominus"]
+                    cols = st.columns(5)
+                    for i, s in enumerate(slova):
+                        if cols[i].button(s, key=f"p_{i}"): st.session_state.paska.append(s); st.rerun()
+                    st.info(f"Nápis: {' '.join(st.session_state.paska)}")
+                    if st.button("Smazat"): st.session_state.paska = []; st.rerun()
+                    if st.session_state.paska == spravne and st.button("Odevzdat hotové dílo (+50 XP)"):
+                        st.session_state.xp += 50
+                        st.session_state.step = 6
+                        st.session_state.substep = 0
+                        st.rerun()
+    
+                elif st.session_state.skupina == "B":
+                    tcols = st.columns(6)
+                    for i, (k, v) in enumerate(LIBRARY.items()):
+                        if tcols[i].button(v['char'], key=f"t_{k}"): st.session_state.current_tool = k
+                    for r in range(7):
+                        gcols = st.columns(7)
+                        for c in range(7):
+                            if gcols[c].button(st.session_state.grid[r][c], key=f"g_{r}_{c}"):
+                                st.session_state.grid[r][c] = LIBRARY[st.session_state.current_tool]["char"]
+                                st.rerun()
+                    if st.button("Zahrada je vysázena (+50 XP)"):
+                        st.session_state.xp += 50
+                        st.session_state.step = 6
+                        st.session_state.substep = 0
+                        st.rerun()
+    
+                elif st.session_state.skupina == "C":
+                    odev = st.text_area("Proč je andělův oděv tak zdobný?")
+                    if odev and st.button("Odeslat mistrovi (+50 XP)"):
+                        st.session_state.xp += 50
+                        st.session_state.step = 6
+                        st.session_state.substep = 0
+                        st.rerun()
 
 # --- ÚROVEŇ 6: REALIZACE ---
 elif st.session_state.step == 6:
