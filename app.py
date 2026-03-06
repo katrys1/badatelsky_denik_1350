@@ -29,7 +29,24 @@ st.markdown("""
         font-family: 'Texturina', serif !important;
     }
 
-    /* Oprava viditelnosti šipky sidebaru a ovládacích prvků */
+    /* Oprava ikon v postranním panelu (zamezí zobrazení textu keyboard_double místo ikony) */
+    i.material-icons,
+    i.material-icons-outlined,
+    i.material-icons-round,
+    i.material-icons-sharp,
+    i.material-icons-two-tone,
+    .stIconMaterial,
+    [data-testid="stSidebarCollapseButton"] *,
+    [data-testid="collapsedControl"] *,
+    [data-testid="stExpanderToggleIcon"] *,
+    span[class*="stIconMaterial"],
+    span[class*="material-symbols"] {
+        font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+        font-variant: normal !important;
+        text-transform: none !important;
+    }
+
+    /* Oprava viditelnosti postranních prvků */
     [data-testid="stSidebarNav"] {
         background-color: transparent !important;
     }
@@ -246,7 +263,31 @@ with st.sidebar:
     if 'jmeno' in st.session_state:
         st.caption(f"Poutník: {st.session_state.jmeno}")
 
-# --- 5. LOGIKA PRŮCHODU ---
+    # --- ADMINISTRÁTORSKÝ GOD MODE ---
+    with st.expander("👁️‍🗨️", expanded=False):
+        admin_kod = st.text_input("Tajný kód", type="password", label_visibility="collapsed")
+        if admin_kod == "1350":
+            st.warning("⚙️ God Mode Aktivován")
+            col_s1, col_s2 = st.columns(2)
+            new_s = col_s1.number_input("Step", 0, 7, int(st.session_state.step))
+            new_sub = col_s2.number_input("Substep", 0, 5, int(st.session_state.substep))
+            
+            if st.button("🚀 Přesunout se"):
+                st.session_state.step = new_s
+                st.session_state.substep = new_sub
+                st.rerun()
+                
+            if st.button("🔑 Odemknout vše"):
+                st.session_state.kresadlo_unlocked = True
+                st.session_state.olovnice_unlocked = True
+                st.session_state.lupa_unlocked = True
+                st.session_state.klic_unlocked = True
+                st.session_state.pigmenty_unlocked = True
+                st.session_state.stetec_unlocked = True
+                st.session_state.xp = st.session_state.max_xp
+                st.rerun()
+
+    # --- 5. LOGIKA PRŮCHODU ---
 
 # --- ÚROVEŇ 0: ÚVOD ---
 if st.session_state.step == 0:
@@ -572,3 +613,29 @@ elif st.session_state.step == 7:
     with col_b:
         st.caption("Tvé dílo")
         if 'vlastni_kresba' in st.session_state: st.image(st.session_state.vlastni_kresba, use_container_width=True)
+
+# --- GLOBÁLNÍ NAVIGACE HRÁČE ---
+if st.session_state.step > 0:
+    st.divider()
+    
+    # Seznam všech úrovní v aplikaci v postupném pořadí
+    levels = [0, 1, 2, 3, 4, 4.5, 5, 6, 7]
+    
+    # Zjištění, na jaké pozici v seznamu se aktuální hráč nachází
+    current_index = levels.index(st.session_state.step) if st.session_state.step in levels else 0
+
+    col_nav_prev, col_nav_space, col_nav_next = st.columns([1, 2, 1])
+    
+    with col_nav_prev:
+        if current_index > 0:
+            if st.button("⬅️ Předchozí úroveň"):
+                st.session_state.step = levels[current_index - 1]
+                st.session_state.substep = 0
+                st.rerun()
+                
+    with col_nav_next:
+        if current_index < len(levels) - 1:
+            if st.button("Další úroveň ➡️"):
+                st.session_state.step = levels[current_index + 1]
+                st.session_state.substep = 0
+                st.rerun()
