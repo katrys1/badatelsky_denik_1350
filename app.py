@@ -450,55 +450,33 @@ def render_church_blueprint():
 
    
 
-    svg = f'<div style="display: flex; justify-content: center; margin: 1rem 0;">' \
-
-          f'<svg width="180" height="220" viewBox="0 0 200 250" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">' \
-
-          f'<!-- Vitráž (4) -->' \
-
-          f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230 Z" fill="url(#glassGradient)" style="opacity: {glass_opacity}; transition: opacity 1.5s ease-in-out;" />' \
-
-          f'<!-- Lomený oblouk (3) -->' \
-
-          f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230" fill="none" stroke="{arch_color}" stroke-width="6" stroke-linecap="round" style="transition: stroke 1s;" />' \
-
-          f'<!-- Žebrová klenba (2) -->' \
-
-          f'<g style="opacity: {ribs_opacity}; transition: opacity 1s;">' \
-
-          f'<path d="M 20 120 Q 100 80 180 120" fill="none" stroke="{active_color}" stroke-width="2" stroke-dasharray="4" />' \
-
-          f'<path d="M 20 120 L 180 120" fill="none" stroke="{active_color}" stroke-width="1" style="opacity: 0.3;" />' \
-
-          f'<path d="M 100 50 L 20 120" fill="none" stroke="{active_color}" stroke-width="3" />' \
-
-          f'<path d="M 100 50 L 180 120" fill="none" stroke="{active_color}" stroke-width="3" />' \
-
-          f'</g>' \
-
-          f'<!-- Svorník (1) -->' \
-
-          f'<circle cx="100" cy="50" r="8" fill="{keystone_color}" stroke="{active_color if "1" in found else "none"}" stroke-width="2" style="transition: all 1s; filter: {"drop-shadow(0 0 5px gold)" if "1" in found else "none"};" />' \
-
-          f'<defs>' \
-
-          f'<linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">' \
-
-          f'<stop offset="0%" style="stop-color:{glass_colors[0]};stop-opacity:1" />' \
-
-          f'<stop offset="33%" style="stop-color:{glass_colors[1]};stop-opacity:1" />' \
-
-          f'<stop offset="66%" style="stop-color:{glass_colors[2]};stop-opacity:1" />' \
-
-          f'<stop offset="100%" style="stop-color:{glass_colors[3]};stop-opacity:1" />' \
-
-          f'</linearGradient>' \
-
-          f'</defs>' \
-
-          f'</svg>' \
-
-          f'</div>'
+    svg = (
+        f'<div style="display: flex; justify-content: center; margin: 1rem 0;">'
+        f'<svg width="180" height="220" viewBox="0 0 200 250" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">'
+        f'<!-- Vitráž (4) -->'
+        f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230 Z" fill="url(#glassGradient)" style="opacity: {glass_opacity}; transition: opacity 1.5s ease-in-out;" />'
+        f'<!-- Lomený oblouk (3) -->'
+        f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230" fill="none" stroke="{arch_color}" stroke-width="6" stroke-linecap="round" style="transition: stroke 1s;" />'
+        f'<!-- Žebrová klenba (2) -->'
+        f'<g style="opacity: {ribs_opacity}; transition: opacity 1s;">'
+        f'<path d="M 20 120 Q 100 80 180 120" fill="none" stroke="{active_color}" stroke-width="2" stroke-dasharray="4" />'
+        f'<path d="M 20 120 L 180 120" fill="none" stroke="{active_color}" stroke-width="1" style="opacity: 0.3;" />'
+        f'<path d="M 100 50 L 20 120" fill="none" stroke="{active_color}" stroke-width="3" />'
+        f'<path d="M 100 50 L 180 120" fill="none" stroke="{active_color}" stroke-width="3" />'
+        f'</g>'
+        f'<!-- Svorník (1) -->'
+        f'<circle cx="100" cy="50" r="8" fill="{keystone_color}" stroke="{active_color if "1" in found else "none"}" stroke-width="2" style="transition: all 1s; filter: {"drop-shadow(0 0 5px gold)" if "1" in found else "none"};" />'
+        f'<defs>'
+        f'<linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">'
+        f'<stop offset="0%" style="stop-color:{glass_colors[0]};stop-opacity:1" />'
+        f'<stop offset="33%" style="stop-color:{glass_colors[1]};stop-opacity:1" />'
+        f'<stop offset="66%" style="stop-color:{glass_colors[2]};stop-opacity:1" />'
+        f'<stop offset="100%" style="stop-color:{glass_colors[3]};stop-opacity:1" />'
+        f'</linearGradient>'
+        f'</defs>'
+        f'</svg>'
+        f'</div>'
+    )
 
     st.sidebar.markdown(svg, unsafe_allow_html=True)
 
@@ -664,202 +642,115 @@ with st.sidebar:
 
    
 
-    # --- VÝPOČET ROZETY DLE PŘEDMĚTŮ V BRAŠNĚ ---
-
-    completed_segments = 0
-
-    if st.session_state.get("kresadlo_unlocked", False): completed_segments += 1
-
-    if st.session_state.get("olovnice_unlocked", False): completed_segments += 1
-
-    if st.session_state.get("lupa_unlocked", False): completed_segments += 1
-
-    if st.session_state.get("klic_unlocked", False): completed_segments += 1
-
-    if st.session_state.get("pigmenty_unlocked", False): completed_segments += 1
-
-    if st.session_state.get("stetec_unlocked", False): completed_segments += 2
-
-    if st.session_state.get("step", 0) >= 7: completed_segments += 1  # Úspěšné dokončení
-
-   
-
+    # --- VÝPOČET ROZETY DLE XP (soubor rozeta.py logika) ---
     total_segments = 8
-
-    completed_segments = min(completed_segments, total_segments)
-
-    procenta = completed_segments / total_segments
-
-    percentage = procenta * 100
-
-    is_maxed = completed_segments == total_segments
-
-   
+    
+    if 'max_xp' not in st.session_state or st.session_state.max_xp <= 0:
+        st.session_state.max_xp = 480
+    
+    current_xp = st.session_state.get('xp', 0)
+    current_step = st.session_state.get('step', 0)
+    
+    # Logika z rozeta.py: procenta a segmenty
+    percentage = min((current_xp / st.session_state.max_xp) * 100, 100) if st.session_state.max_xp > 0 else 0
+    
+    # Zachování "gate" pro úroveň 7 (poslední 3 segmenty)
+    if current_step >= 7:
+        completed_segments = int((percentage / 100) * total_segments)
+    else:
+        xp_level_limit = 5
+        completed_segments = min(int((percentage / 100) * total_segments), xp_level_limit)
+    
+    is_maxed = percentage >= 100 and current_step >= 7
+    
+    # Pojistka pro rank
+    if 'rank' not in locals():
+        rank = (
+            "🔰 Učeň" if current_xp <= 150 else 
+            "📜 Tovaryš" if current_xp <= 350 else 
+            "🎓 Mistr Badatel"
+        )
 
     # --- SVG ROZETA (z rozeta.py) ---
-
     import math
-
+    # Barvy pro vitráž z rozeta.py
     colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#6366f1', '#a855f7']
-
    
-
     svg_paths = ""
-
     for i in range(total_segments):
-
         angle = 360 / total_segments
-
         start_angle = i * angle
-
         end_angle = (i + 1) * angle
-
        
-
         def polar_to_cartesian(cx, cy, r, angle_deg):
-
             angle_rad = (angle_deg - 90) * math.pi / 180.0
-
             return cx + r * math.cos(angle_rad), cy + r * math.sin(angle_rad)
-
            
-
         start_x, start_y = polar_to_cartesian(100, 100, 80, end_angle)
-
         end_x, end_y = polar_to_cartesian(100, 100, 80, start_angle)
-
         large_arc_flag = "0" if end_angle - start_angle <= 180 else "1"
-
        
-
         path_d = f"M 100 100 L {start_x} {start_y} A 80 80 0 {large_arc_flag} 0 {end_x} {end_y} Z"
-
         fill_color = colors[i] if i < completed_segments else '#1e293b'
-
         opacity = "0.9" if i < completed_segments else "0.3"
-
        
-
         svg_paths += f'<path d="{path_d}" fill="{fill_color}" stroke="#0f172a" stroke-width="2" style="opacity: {opacity}; transition: all 0.7s ease-in-out;" />'
 
-
-
     glow_filter = """
-
 <defs>
-
   <filter id="glow">
-
     <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
-
     <feMerge>
-
       <feMergeNode in="coloredBlur"/>
-
       <feMergeNode in="SourceGraphic"/>
-
     </feMerge>
-
   </filter>
-
 </defs>
-
 """ if is_maxed else ""
-
    
-
     filter_attr = 'filter="url(#glow)"' if is_maxed else ""
-
     center_color = "#fff" if is_maxed else "#334155"
-
    
-
     if is_maxed:
-
-        status_text = "Rozeta je plná barev společně s tvojí malbou"
-
+        status_text = "Rozeta je plná barev stejně jako tvoje malba"
         status_color = "#facc15" # text-yellow-400
-
         status_class = "animate-pulse"
-
         scale = "scale(1.1)"
-
     else:
-
         status_text = f"Pokrok: {round(percentage)}%"
-
         status_color = "#94a3b8" # text-slate-400
-
         status_class = ""
-
         scale = "scale(1.0)"
 
-
-
-    # (Rank vypočten na začátku sidebaru)
-
-
-
     svg_html = f"""
-
 <style>
-
 @keyframes pulse {{
-
   0%, 100% {{ opacity: 1; }}
-
   50% {{ opacity: .5; }}
-
 }}
-
 .animate-pulse {{
-
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-
 }}
-
 </style>
-
 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 0.5rem; margin-bottom: 0.5rem; transition: all 1s; transform: {scale};">
-
 <svg width="150" height="150" viewBox="0 0 200 200" style="filter: drop-shadow(0 15px 15px rgb(0 0 0 / 0.1));">
-
 {glow_filter}
-
 <g {filter_attr}>
-
 {svg_paths}
-
 <circle cx="100" cy="100" r="15" fill="{center_color}" style="transition: fill 1s;" />
-
 </g>
-
 </svg>
-
-<!-- Textové info ve stylu rozeta.py -->
-
 <div style="margin-top: 0.5rem; text-align: center;">
-
 <h2 class="{status_class}" style="font-size: 1.05rem; font-family: serif; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: {status_color}; margin: 0;">
-
 {status_text}
-
 </h2>
-
 <p style="color: #64748b; margin-top: 0.2rem; font-family: monospace; font-size: 0.9rem; margin-bottom: 0;">
-
-{rank} | {st.session_state.xp} / {st.session_state.max_xp} XP
-
+{st.session_state.xp} / {st.session_state.max_xp} XP
 </p>
-
 </div>
-
 </div>
-
 """
-
     st.markdown(svg_html, unsafe_allow_html=True)
-
     # --- KONEC SVG ROZETY ---
 
     if 'jmeno' in st.session_state:
@@ -1295,4 +1186,3 @@ elif st.session_state.step == 2:
                 st.session_state.olovnice_unlocked = False
 
                 st.session_state.olovnice_lost = True
-
