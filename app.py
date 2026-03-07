@@ -79,8 +79,36 @@ st.markdown("""
     .stProgress > div > div > div > div {
         background-color: #000000 !important;
     }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+    .shake-effect {
+      animation: shake 0.5s;
+    }
     </style>
     """, unsafe_allow_html=True)
+
+# --- 2.1 EFEKT OTŘESU (DYNAMICKY) ---
+if st.session_state.get('shake_effect', False):
+    st.markdown("""
+        <style>
+        [data-testid="stAppViewContainer"] {
+            animation: shake 0.5s;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.session_state.shake_effect = False
 
 # --- 3. INICIALIZACE STAVU ---
 if 'step' not in st.session_state:
@@ -93,6 +121,7 @@ if 'step' not in st.session_state:
     st.session_state.diary_entries = []
     st.session_state.paska = []  
     st.session_state.current_tool = "1"
+    st.session_state.shake_effect = False
     
     # Pomocné stavy pro Level 2
     st.session_state.l2_found = []
@@ -149,6 +178,7 @@ def claim_xp(amount, key):
 
 def render_church_blueprint():
     found = st.session_state.l2_found
+    health = st.session_state.get('l2_exam_health', 3)
     
     # Barvy
     base_color = "#1e293b" # tmavě břidlicová
@@ -161,6 +191,17 @@ def render_church_blueprint():
     keystone_color = active_color if "1" in found else base_color
     glass_opacity = "0.6" if "4" in found else "0"
     
+    # Vykreslování trhlin při poškození
+    cracks = ""
+    if health < 3:
+        cracks += '<path d="M 90 45 L 100 55 L 110 50" fill="none" stroke="#ef4444" stroke-width="2" />'
+        cracks += '<path d="M 95 60 L 100 70 L 105 65" fill="none" stroke="#ef4444" stroke-width="1.5" />'
+    if health < 2:
+        cracks += '<path d="M 30 130 L 50 145" fill="none" stroke="#ef4444" stroke-width="2" />'
+        cracks += '<path d="M 170 130 L 150 145" fill="none" stroke="#ef4444" stroke-width="2" />'
+        cracks += '<path d="M 20 160 L 40 170" fill="none" stroke="#ef4444" stroke-width="2" />'
+        cracks += '<path d="M 180 160 L 160 170" fill="none" stroke="#ef4444" stroke-width="2" />'
+
     svg = f'<div style="display: flex; justify-content: center; margin: 1rem 0;">' \
           f'<svg width="180" height="220" viewBox="0 0 200 250" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">' \
           f'<!-- Vitráž (4) -->' \
@@ -176,6 +217,8 @@ def render_church_blueprint():
           f'</g>' \
           f'<!-- Svorník (1) -->' \
           f'<circle cx="100" cy="50" r="8" fill="{keystone_color}" stroke="{active_color if "1" in found else "none"}" stroke-width="2" style="transition: all 1s; filter: {"drop-shadow(0 0 5px gold)" if "1" in found else "none"};" />' \
+          f'<!-- Trhliny -->' \
+          f'{cracks}' \
           f'<defs>' \
           f'<linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">' \
           f'<stop offset="0%" style="stop-color:{glass_colors[0]};stop-opacity:1" />' \
@@ -457,9 +500,23 @@ elif st.session_state.step == 2:
         st.subheader("📜 Mistrova zkouška stability")
         
         # Ukazatel stability (Health)
-        health_icons = "❤️" * st.session_state.l2_exam_health + "🖤" * (3 - st.session_state.l2_exam_health)
-        st.write(f"**Stabilita tvých vědomostí:** {health_icons}")
+        health = st.session_state.l2_exam_health
+        stability_percent = (health / 3)
         
+        col_stab1, col_stab2 = st.columns([1, 3])
+        with col_stab1:
+            health_icons = "❤️" * health + "🖤" * (3 - health)
+            st.write(f"**Stabilita:** {health_icons}")
+        with col_stab2:
+            st.progress(stability_percent)
+        
+        if health == 3:
+            st.success("Klenba je zatím stabilní. Mistr bedlivě sleduje každý tvůj pohyb.")
+        elif health == 2:
+            st.warning("⚠️ V klenbě se objevily první praskliny! Slyšíš jemné drolení kamene.")
+        elif health == 1:
+            st.error("🚨 KRITICKÝ STAV! Klenba se nebezpečně prohýbá. Jedna chyba a vše se zřítí!")
+
         # Definice otázek a správných odpovědí
         questions = [
             ("Jaký sloh definuje tyto lomené tvary?", ["gotika", "gotický"]),
@@ -470,31 +527,40 @@ elif st.session_state.step == 2:
         curr_q = st.session_state.l2_exam_step
         if curr_q < 3:
             q_text, answers = questions[curr_q]
-            # Použijeme jedinečný klíč pro text_input, aby se při každé otázce choval správně
-            user_ans = st.text_input(f"Otázka č. {curr_q + 1}: {q_text}", key=f"q_input_{curr_q}").lower().strip()
             
-            if st.button("Potvrdit odpověď"):
+            with st.chat_message("assistant", avatar="🧱"):
+                st.write(f"Mistr stavitel: „Pozorně se dívej na své poznámky a odpověz mi... {q_text}“")
+
+            # Použijeme jedinečný klíč pro text_input, aby se při každé otázce choval správně
+            user_ans = st.text_input("Tvá odpověď:", key=f"q_input_{curr_q}").lower().strip()
+            
+            if st.button("Odeslat odpověď mistrovi"):
                 if user_ans in answers:
-                    st.success("Mistr: „Správně. Stavba stojí pevně.“")
+                    st.success("Mistr: „Správně. Cítím, jak se kameny do sebe pevně zaklesly.“")
                     st.session_state.l2_exam_step += 1
                     if st.session_state.l2_exam_step == 3:
-                        st.success("Mistr: „Prošel jsi zkouškou bez zhroucení klenby. Získáváš 📐 Olovnici, nástroj přesnosti.“")
+                        st.balloons()
+                        st.success("Mistr: „Úžasné! Prošel jsi zkouškou a klenba stojí pevněji než kdy dřív. Získáváš 📐 Olovnici, nástroj přesnosti.“")
                         st.session_state.olovnice_unlocked = True
                         claim_xp(50, "l2_exam")
                         st.session_state.substep = 2
                     st.rerun()
                 else:
                     st.session_state.l2_exam_health -= 1
+                    st.session_state.shake_effect = True
+                    
                     if st.session_state.l2_exam_health <= 0:
-                        st.error("!!! KLENBA PRASKLA !!!")
-                        st.error("Mistr: „Tvá neznalost ohrožuje samotnou stavbu! Jdi zpět a dívej se pozorněji.“")
+                        st.error("!!! KLENBA SE ZŘÍTILA !!!")
+                        st.error("Mistr: „Tvá neznalost pohřbila celou naši práci! Musíme začít od základů.“")
+                        time.sleep(2)
                         # Reset celého postupu úrovně 2
                         st.session_state.substep = 0
                         st.session_state.l2_found = []
                         st.session_state.l2_exam_health = 3
                         st.session_state.l2_exam_step = 0
                     else:
-                        st.warning(f"Mistr: „Pozor! V klenbě se objevila prasklina. Tvá stabilita klesá.“")
+                        st.error("💥 *PRÁSK!* 💥")
+                        st.warning(f"Mistr: „Pozor! Celá stavba se zatřásla. Tvá chyba oslabila stabilitu!“")
                     st.rerun()
         else:
             # Pojistka pro případ, že by se hráč vrátil
