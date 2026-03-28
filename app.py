@@ -102,11 +102,17 @@ st.markdown("""
         [data-testid="stAppViewContainer"] {
             padding: 1rem 0.5rem !important;
         }
+        /* Lepší správa postranního panelu na mobilu */
         [data-testid="stSidebar"] {
-            width: 85vw !important;
+            min-width: 300px !important;
+            max-width: 80% !important;
+            overflow-y: auto !important;
         }
-        h1 { font-size: 1.8rem !important; }
-        h2 { font-size: 1.5rem !important; }
+        [data-testid="stSidebarUserContent"] {
+            padding: 1.5rem 1rem 5rem !important;
+        }
+        h1 { font-size: 1.6rem !important; }
+        h2 { font-size: 1.4rem !important; }
         .stButton>button {
             font-size: 0.9rem !important;
             padding: 0.5rem !important;
@@ -116,7 +122,7 @@ st.markdown("""
             min-width: 0 !important;
         }
         
-        /* Úprava pro mřížku v Herbáři - zajistíme, aby se tlačítka v řadě nepřekrývala a zůstala vedle sebe */
+        /* Úprava pro mřížku v Herbáři */
         [data-testid="stHorizontalBlock"] {
             gap: 0.2rem !important;
         }
