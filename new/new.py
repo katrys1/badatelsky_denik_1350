@@ -269,7 +269,7 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.header("📜 Úroveň 4: Písmo")
     if os.path.exists("d.jpg"): st.image("d.jpg", width=900)
-    st.write("Rozlušti kód z badatelského listu.")
+    st.write("Rozlušti kód z badatelského listu (např. L 1, 26).")
     kod = st.text_input("Kód:").upper().strip()
     if kod == "L 1, 26":
         st.success("Kód přijat! Získal jsi 🗝️ Klíč."); st.session_state.klic_unlocked = True; claim_xp(60, "l4_script")
