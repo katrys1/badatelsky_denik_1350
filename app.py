@@ -5,7 +5,7 @@ import base64
 from PIL import Image
 
 # --- 1. KONFIGURACE STRÁNKY ---
-st.set_page_config(page_title="Badatelský deník 1350", page_icon="🌿", layout="wide")
+st.set_page_config(page_title="Badatelský deník 1350", page_icon="🌿", layout="wide", initial_sidebar_state="expanded")
 
 # --- 2. STYLIZACE (OPRAVENÁ PRO SIDEBAR) ---
 st.markdown("""
@@ -95,6 +95,31 @@ st.markdown("""
     }
     .shake-effect {
       animation: shake 0.5s;
+    }
+
+    /* Responsivita pro mobilní zařízení */
+    @media (max-width: 768px) {
+        [data-testid="stAppViewContainer"] {
+            padding: 1rem 0.5rem !important;
+        }
+        [data-testid="stSidebar"] {
+            width: 85vw !important;
+        }
+        h1 { font-size: 1.8rem !important; }
+        h2 { font-size: 1.5rem !important; }
+        .stButton>button {
+            font-size: 0.9rem !important;
+            padding: 0.5rem !important;
+        }
+        /* Zmenšení mezer mezi sloupci na mobilu */
+        [data-testid="column"] {
+            min-width: 0 !important;
+        }
+        
+        /* Úprava pro mřížku v Herbáři - zajistíme, aby se tlačítka v řadě nepřekrývala a zůstala vedle sebe */
+        [data-testid="stHorizontalBlock"] {
+            gap: 0.2rem !important;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -202,8 +227,8 @@ def render_church_blueprint():
         cracks += '<path d="M 20 160 L 40 170" fill="none" stroke="#ef4444" stroke-width="2" />'
         cracks += '<path d="M 180 160 L 160 170" fill="none" stroke="#ef4444" stroke-width="2" />'
 
-    svg = f'<div style="display: flex; justify-content: center; margin: 1rem 0;">' \
-          f'<svg width="180" height="220" viewBox="0 0 200 250" style="filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">' \
+    svg = f'<div style="display: flex; justify-content: center; margin: 1rem 0; max-width: 100%;">' \
+          f'<svg width="100%" height="auto" viewBox="0 0 200 250" style="max-width: 200px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: all 1s;">' \
           f'<!-- Vitráž (4) -->' \
           f'<path d="M 20 230 L 20 120 Q 100 -20 180 120 L 180 230 Z" fill="url(#glassGradient)" style="opacity: {glass_opacity}; transition: opacity 1.5s ease-in-out;" />' \
           f'<!-- Lomený oblouk (3) -->' \
@@ -374,8 +399,8 @@ with st.sidebar:
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }}
 </style>
-<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 1rem; margin-bottom: 1rem; transition: all 1s; transform: {scale};">
-<svg width="200" height="200" viewBox="0 0 200 200" style="filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));">
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 1rem; margin-bottom: 1rem; transition: all 1s; transform: {scale}; width: 100%;">
+<svg width="100%" height="auto" viewBox="0 0 200 200" style="max-width: 200px; filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));">
 {glow_filter}
 <g {filter_attr}>
 {svg_paths}
@@ -446,7 +471,7 @@ with st.sidebar:
 
 # --- ÚROVEŇ 0: ÚVOD ---
 if st.session_state.step == 0:
-    if os.path.exists("poutnik.jpg"): st.image("poutnik.jpg", width="stretch")
+    if os.path.exists("poutnik.jpg"): st.image("poutnik.jpg", use_container_width=True)
     st.header("Badatelský deník: Malířská dílna (1350)")
     st.session_state.jmeno = st.text_input("Zadej své jméno, badateli:")
     rok = st.number_input("Rok tvého narození (do deníku):", min_value=1300, max_value=2026, value=2010)
@@ -465,7 +490,7 @@ elif st.session_state.step == 2:
         st.write(f"Vítej, {st.session_state.jmeno}. Ztiš se a vnímej prostor.")
         st.info("Mistr stavitel: „Zvedni hlavu. Co drží tuto stavbu nad tebou? Prohlédni si prostor a najdi klíčové prvky.“")
         
-        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", width="stretch")
+        if os.path.exists("b_sipky.jpg"): st.image("b_sipky.jpg", use_container_width=True)
         targets = {"1": "Svorník", "2": "Žebrová klenba", "3": "Lomený oblouk", "4": "Vitráž"}
         
         cols = st.columns(4)
@@ -511,7 +536,7 @@ elif st.session_state.step == 2:
             st.progress(stability_percent)
         
         if health == 3:
-            st.success("Klenba je zatím stabilní. Mistr bedlivě sleduje každý tvůj pohyb.")
+            st.success("Klenba je zatím stabilní.")
         elif health == 2:
             st.warning("⚠️ V klenbě se objevily první praskliny! Slyšíš jemné drolení kamene.")
         elif health == 1:
@@ -529,14 +554,14 @@ elif st.session_state.step == 2:
             q_text, answers = questions[curr_q]
             
             with st.chat_message("assistant", avatar="🧱"):
-                st.write(f"Mistr stavitel: „Pozorně se dívej na své poznámky a odpověz mi... {q_text}“")
+                st.write(f"Mistr stavitel: „{q_text}“")
 
             # Použijeme jedinečný klíč pro text_input, aby se při každé otázce choval správně
             user_ans = st.text_input("Tvá odpověď:", key=f"q_input_{curr_q}").lower().strip()
             
             if st.button("Odeslat odpověď mistrovi"):
                 if user_ans in answers:
-                    st.success("Mistr: „Správně. Cítím, jak se kameny do sebe pevně zaklesly.“")
+                    st.success("Mistr: „Správně.“")
                     st.session_state.l2_exam_step += 1
                     if st.session_state.l2_exam_step == 3:
                         st.balloons()
@@ -551,7 +576,7 @@ elif st.session_state.step == 2:
                     
                     if st.session_state.l2_exam_health <= 0:
                         st.error("!!! KLENBA SE ZŘÍTILA !!!")
-                        st.error("Mistr: „Tvá neznalost pohřbila celou naši práci! Musíme začít od základů.“")
+                        st.error("Mistr: „Musíme začít od základů.“")
                         time.sleep(2)
                         # Reset celého postupu úrovně 2
                         st.session_state.substep = 0
@@ -577,7 +602,7 @@ elif st.session_state.step == 2:
             if st.button("⚜️ Oltář"):
                 st.warning("Mistr: „Nespěchej, nejdříve musíš určit svou polohu v kněžišti.“")
                 if st.session_state.olovnice_unlocked:
-                    st.error("Zatoulal jsi se a tvá 📐 Olovnice se ztratila v prachu.")
+                    st.error("Zatoulal jsi se a přišel o olovnici.")
                     st.session_state.olovnice_unlocked = False
                     st.session_state.olovnice_lost = True
 
@@ -653,17 +678,17 @@ elif st.session_state.step == 3:
     if st.session_state.substep == 0:
         col_main, col_side = st.columns([3, 1])
         with col_main:
-            if os.path.exists("c.jpg"): st.image("c.jpg", width="stretch")
+            if os.path.exists("c.jpg"): st.image("c.jpg", use_container_width=True)
             if st.button("Prozkoumat oltářní desku"):
                 st.session_state.substep = 1
                 st.rerun()
         with col_side:
             if os.path.exists("predikonograficky_popis.png"):
-                st.image("predikonograficky_popis.png", width="stretch")
+                st.image("predikonograficky_popis.png", use_container_width=True)
     elif st.session_state.substep == 1:
         col_main, col_side = st.columns([3, 1])
         with col_main:
-            if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", width="stretch")
+            if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", use_container_width=True)
             if st.button("Studovat detaily"):
                 st.session_state.substep = 2
                 st.rerun()
@@ -694,15 +719,15 @@ elif st.session_state.step == 4:
     if st.session_state.substep == 0:
         col_main, col_side = st.columns([3, 1])
         with col_main:
-            if os.path.exists("d.jpg"): st.image("d.jpg", width="stretch")
+            if os.path.exists("d.jpg"): st.image("d.jpg", use_container_width=True)
             if st.button("Prozkoumat listiny"):
                 st.session_state.substep = 1
                 st.rerun()
         with col_side:
             if os.path.exists("ikonograficky_popis.png"):
-                st.image("ikonograficky_popis.png", width="stretch")
+                st.image("ikonograficky_popis.png", use_container_width=True)
     elif st.session_state.substep == 1:
-        if os.path.exists("image.png"): st.image("image.png", width="stretch")
+        if os.path.exists("image.png"): st.image("image.png", use_container_width=True)
         if st.button("Rozluštit kód textu"):
             st.session_state.substep = 2
             st.rerun()
@@ -723,7 +748,7 @@ elif st.session_state.step == 4.5:
     st.subheader("Skrytá chodba za oltářem")
     
     if os.path.exists("tajna_mistnost.jpg"): 
-        st.image("tajna_mistnost.jpg", width="stretch", caption="Vstoupil jsi do zapomenutého archivu.")
+        st.image("tajna_mistnost.jpg", use_container_width=True, caption="Vstoupil jsi do zapomenutého archivu.")
     
     st.write("Klíč v tvé dlani začal hřát. Odsunul jsi těžký svícen a uviděl úzké schodiště.")
     st.info("Vidíš starý svitek s dalšími instrukcemi, které si přečti ve svých badatelských listech.")
@@ -738,13 +763,12 @@ elif st.session_state.step == 5:
     if st.session_state.substep == 0:
         col_main, col_side = st.columns([3, 1])
         with col_main:
-            if os.path.exists("e.jpg"): st.image("e.jpg", width="stretch")
+            if os.path.exists("e.jpg"): st.image("e.jpg", use_container_width=True)
             if st.button("Vybrat si mistrovskou specializaci"):
                 st.session_state.substep = 1
                 st.rerun()
         with col_side:
-            if os.path.exists("ikonograficka_interpretace.png"):
-                st.image("ikonograficka_interpretace.png", width="stretch")
+                st.image("ikonograficka_interpretace.png", use_container_width=True)
     else:
         st.subheader("ÚROVEŇ 5: DÍLENSKÁ SPECIALIZACE - Práce s badatelskými listy")
         if 'skupina' not in st.session_state:
@@ -758,11 +782,11 @@ elif st.session_state.step == 5:
             col_main, col_side = st.columns([1, 1.5])
             with col_side:
                 if st.session_state.skupina == "A" and os.path.exists("A.png"):
-                    st.image("A.png", width="stretch")
+                    st.image("A.png", use_container_width=True)
                 elif st.session_state.skupina == "B" and os.path.exists("B.png"):
-                    st.image("B.png", width="stretch")
+                    st.image("B.png", use_container_width=True)
                 elif st.session_state.skupina == "C" and os.path.exists("C.png"):
-                    st.image("C.png", width="stretch")
+                    st.image("C.png", use_container_width=True)
             with col_main:
                 if st.session_state.skupina == "A":
                     st.write("Napiš správně text a odpověz na badatelskou otázku z listu")
@@ -784,6 +808,7 @@ elif st.session_state.step == 5:
                     tcols = st.columns(6)
                     for i, (k, v) in enumerate(LIBRARY.items()):
                         if tcols[i].button(v['char'], key=f"t_{k}"): st.session_state.current_tool = k
+                    
                     for r in range(7):
                         gcols = st.columns(7)
                         for c in range(7):
@@ -816,7 +841,7 @@ elif st.session_state.step == 5:
 elif st.session_state.step == 6:
     st.session_state.stetec_unlocked = True
     if st.session_state.substep == 0:
-        if os.path.exists("f.jpg"): st.image("f.jpg", width="stretch")
+        if os.path.exists("f.jpg"): st.image("f.jpg", use_container_width=True)
         if st.button("Vstoupit k malbě"):
             st.session_state.substep = 1
             st.rerun()
@@ -825,7 +850,7 @@ elif st.session_state.step == 6:
         up = st.file_uploader("Nahraj fotografii:", type=["jpg", "png"])
         if up:
              st.session_state.vlastni_kresba = up
-             st.image(up, width="stretch")
+             st.image(up, use_container_width=True)
              
              has_tools = st.session_state.get("pigmenty_unlocked", False) and st.session_state.get("stetec_unlocked", False)
              btn_label = "🎨 DOKONČIT MISTROVSKÉ DÍLO" if has_tools else "✏️ DOKONČIT PROSTOU SKICU"
@@ -843,7 +868,7 @@ elif st.session_state.step == 6:
 
 # --- ÚROVEŇ 7: ZÁVĚR ---
 elif st.session_state.step == 7:
-    if os.path.exists("h.jpg"): st.image("h.jpg", width="stretch")
+    if os.path.exists("h.jpg"): st.image("h.jpg", use_container_width=True)
     st.header("Gratulujeme, mistře badateli!")
     
     # --- FINÁLNÍ DENÍK ---
@@ -898,7 +923,7 @@ elif st.session_state.step == 7:
     st.divider()
     col_qr1, col_qr2 = st.columns([1, 2])
     with col_qr1:
-        st.image(qr_url, caption="Tvůj deník + miniatura obrazu")
+        st.image(qr_url, caption="Tvůj deník")
     with col_qr2:
         st.write("### 📱 Vezmi si svůj deník s sebou!")
         st.write("Naskenuj tento kód svým telefonem a uchovej si své poznámky a objevy z roku 1350 jako památku na svou badatelskou cestu.")
@@ -908,7 +933,7 @@ elif st.session_state.step == 7:
     col_a, col_b = st.columns(2)
     with col_a:
         st.caption("Předloha")
-        if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", width="stretch")
+        if os.path.exists("image_c6a996.jpg"): st.image("image_c6a996.jpg", use_container_width=True)
     with col_b:
-        if 'vlastni_kresba' in st.session_state: st.image(st.session_state.vlastni_kresba, width="stretch")
+        if 'vlastni_kresba' in st.session_state: st.image(st.session_state.vlastni_kresba, use_container_width=True)
 
